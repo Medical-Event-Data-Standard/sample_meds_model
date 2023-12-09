@@ -51,7 +51,7 @@ def get_norm_params(ds: datasets.Dataset) -> dict[str, tuple[float, float]]:
     def add_measurements(measurements):
         for m in measurements:
             code = m["code"]
-            value = m["value"]
+            value = m["numeric_value"]
             if value is None or value is np.nan:
                 continue
             if code not in stats:
