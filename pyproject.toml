@@ -16,7 +16,7 @@ classifiers = [
     "License :: OSI Approved :: MIT License",
     "Operating System :: OS Independent",
 ]
-dependencies = ["esds-transformations>=0.0.1", "lightning", "torch", "torchmetrics"]
+dependencies = ["esds-transformations>=0.0.1", "lightning", "torch", "torchmetrics", "datasets"]
 
 [project.optional-dependencies]
 dev = ["pre-commit"]

@@ -8,7 +8,7 @@ from argparse import ArgumentParser
 from pathlib import Path
 
 import datasets
-import lighting as L
+import lightning as L
 import numpy as np
 import polars as pl
 from ESDS_transformations import (
@@ -21,7 +21,7 @@ from ESDS_transformations import (
 from torch.utils.data import DataLoader
 from tqdm.auto import tqdm
 
-from .simple_model import LightningModel
+from sample_ESDS_model.simple_model import LightningModel
 
 logger = logging.getLogger(__name__)
 
