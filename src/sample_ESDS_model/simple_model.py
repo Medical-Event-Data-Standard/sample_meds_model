@@ -1,6 +1,9 @@
 """A simple MLP model for binary classification."""
 
+import lightning as L
 import torch
+import torchmetrics
+
 
 class InputLayer(torch.nn.Module):
     def __init__(self, vocab_size: int, hidden_size: int):
@@ -9,30 +12,30 @@ class InputLayer(torch.nn.Module):
         self.vocab_size = vocab_size
         self.hidden_size = hidden_size
         self.embedder = torch.nn.EmbeddingBag(
-            num_embeddings = vocab_size,
-            embedding_dim = hidden_size,
-            padding_idx = 0,
-            mode = 'sum',
+            num_embeddings=vocab_size,
+            embedding_dim=hidden_size,
+            padding_idx=0,
+            mode="sum",
         )
 
-    def _embed(self, ids, values, values_mask, event_mask = None):
+    def _embed(self, ids, values, values_mask, event_mask=None):
         per_sample_weights = torch.where(values_mask, values, torch.ones_like(values))
         embedded = self.embedder(ids, per_sample_weights=per_sample_weights)
         if event_mask is not None:
             embedded = torch.where(
-                event_mask.unsqueeze(-1).expand_as(embedded),
-                embedded,
-                torch.zeros_like(embedded)
+                event_mask.unsqueeze(-1).expand_as(embedded), embedded, torch.zeros_like(embedded)
             )
         return embedded
 
     def _3D_embed(self, ids, event_mask, values, values_mask):
         batch_size, seq_len, n_measurements = ids.shape
 
-        ids = ids.reshape((batch_size*seq_len, n_measurements))
-        event_mask = event_mask.reshape((batch_size*seq_len,),)
-        values = values.reshape((batch_size*seq_len, n_measurements))
-        values_mask = values_mask.reshape((batch_size*seq_len, n_measurements))
+        ids = ids.reshape((batch_size * seq_len, n_measurements))
+        event_mask = event_mask.reshape(
+            (batch_size * seq_len,),
+        )
+        values = values.reshape((batch_size * seq_len, n_measurements))
+        values_mask = values_mask.reshape((batch_size * seq_len, n_measurements))
 
         embed = self._embed(ids, values, values_mask, event_mask)
         return embed.reshape((batch_size, seq_len, self.hidden_size))
@@ -51,6 +54,7 @@ class InputLayer(torch.nn.Module):
         dynamic_embedding = self._3D_embed(dynamic_ids, event_mask, dynamic_values, dynamic_values_mask)
 
         return static_embedding, dynamic_embedding
+
 
 class Model(torch.nn.Module):
     def __init__(self, vocab_size: int, hidden_size: int, n_layers: int):
@@ -93,3 +97,34 @@ class Model(torch.nn.Module):
         loss = self.criterion(logit, in_hosp_mortality.float())
 
         return (loss, logit, seq_embed)
+
+
+class LightningModel(L.LightningModule):
+    def __init__(self, vocab_size: int, hidden_size: int, n_layers: int, lr: float):
+        super().__init__()
+
+        self.model = Model(vocab_size, hidden_size, n_layers)
+        self.lr = lr
+        self.AUROC = torchmetrics.AUROC(task="binary", thresholds=50)
+
+    def forward(self, *args, **kwargs):
+        return self.model(*args, **kwargs)
+
+    def configure_optimizers(self):
+        return torch.optim.Adam(self.model.parameters(), lr=self.lr)
+
+    def _step(self, batch, prefix: str):
+        loss, logit, seq_embed = self.model(*batch)
+        self.log(f"{prefix}_loss", loss)
+        self.AUROC(logit, batch[-1])
+        self.log(f"{prefix}_AUROC", self.AUROC, on_step=False, on_epoch=True)
+        return loss
+
+    def training_step(self, batch, batch_idx):
+        return self._step(batch, "train")
+
+    def validation_step(self, batch, batch_idx):
+        return self._step(batch, "tuning")
+
+    def test_step(self, batch, batch_idx):
+        return self._step(batch, "held_out")
