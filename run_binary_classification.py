@@ -59,7 +59,7 @@ def get_norm_params(ds: datasets.Dataset) -> dict[str, tuple[float, float]]:
             count, sum_vals, sum_sq_vals = stats[code]
             stats[code] = (count + 1, sum_vals + value, sum_sq_vals + value**2)
 
-    for row in tqdm(ds, desc="Building vocabulary", total=len(ds)):
+    for row in tqdm(ds, desc="Measuring normalization parameters", total=len(ds)):
         add_measurements(row["static_measurements"])
         for e in row["events"]:
             add_measurements(e["measurements"])
@@ -120,7 +120,7 @@ def main():
             transform_fn,
             batch_size=256,
             batched=True,
-            remove_columns=["subject_id", "static_measurements", "events"],
+            remove_columns=["patient_id", "static_measurements", "events"],
         )
 
     train_dataloader = DataLoader(ds["train"], batch_size=args.batch_size, shuffle=True)
