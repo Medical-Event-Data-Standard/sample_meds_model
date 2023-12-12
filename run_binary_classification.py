@@ -1,6 +1,6 @@
 #!/usr/bin/env python
 
-"""Run a simple binary classification model over an ESDS dataset."""
+"""Run a simple binary classification model over an ESDI dataset."""
 
 import json
 import logging
@@ -11,7 +11,7 @@ import datasets
 import lightning as L
 import numpy as np
 import polars as pl
-from ESDS_transformations import (
+from ESDI_transformations import (
     JoinCohortFntr,
     NormalizeFntr,
     SampleSubsequencesFntr,
@@ -21,7 +21,7 @@ from ESDS_transformations import (
 from torch.utils.data import DataLoader
 from tqdm.auto import tqdm
 
-from sample_ESDS_model.simple_model import LightningModel
+from sample_ESDI_model.simple_model import LightningModel
 
 logger = logging.getLogger(__name__)
 
@@ -70,7 +70,7 @@ def get_norm_params(ds: datasets.Dataset) -> dict[str, tuple[float, float]]:
 
 
 def main():
-    parser = ArgumentParser("Train a model over a binary classification task on an ESDS dataset.")
+    parser = ArgumentParser("Train a model over a binary classification task on an ESDI dataset.")
     parser.add_argument("--dataset_path", type=str)
     parser.add_argument("--task_df_path", type=str)
     parser.add_argument("--output_path", type=str)

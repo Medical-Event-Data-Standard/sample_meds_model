@@ -1,7 +1,7 @@
-# sample_ESDS_model
+# sample_ESDI_model
 
-A sample model for binary classification over an ESDS dataset.
+A sample model for binary classification over an ESDI dataset.
 
 ## Installation
 
-Install [`ESDS_transformations`](https://github.com/Event-Stream-Data-Standard/ESDS_transformations).
+Install [`ESDI_transformations`](https://github.com/Event-Stream-Data-Standard/ESDI_transformations).

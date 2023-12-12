@@ -3,12 +3,12 @@ requires = ["setuptools>=61.0"]
 build-backend = "setuptools.build_meta"
 
 [project]
-name = "sample_ESDS_model"
+name = "sample_ESDI_model"
 version = "0.0.1"
 authors = [
   { name="Matthew McDermott", email="mattmcdermott8@gmail.com" },
 ]
-description = "Sample binary classification model for ESDS data"
+description = "Sample binary classification model for ESDI data"
 readme = "README.md"
 requires-python = ">=3.10"
 classifiers = [
@@ -16,11 +16,11 @@ classifiers = [
     "License :: OSI Approved :: MIT License",
     "Operating System :: OS Independent",
 ]
-dependencies = ["esds-transformations>=0.0.1", "lightning", "torch", "torchmetrics", "datasets"]
+dependencies = ["esdi-transformations>=0.0.1", "lightning", "torch", "torchmetrics", "datasets"]
 
 [project.optional-dependencies]
 dev = ["pre-commit"]
 
 [project.urls]
-Homepage = "https://github.com/Event-Stream-Data-Standard/sample_ESDS_model"
-Issues = "https://github.com/Event-Stream-Data-Standard/sample_ESDS_model/issues"
+Homepage = "https://github.com/Event-Stream-Data-Standard/sample_ESDI_model"
+Issues = "https://github.com/Event-Stream-Data-Standard/sample_ESDI_model/issues"
