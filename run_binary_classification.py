@@ -68,6 +68,21 @@ def get_norm_params(ds: datasets.Dataset) -> dict[str, tuple[float, float]]:
         for code, (count, sum_vals, sum_sq_vals) in stats.items()
     }
 
+def get_max_measurements(ds: datasets.Dataset) -> int:
+    """Get the max number of measurements observed across all patients in the dataset.
+
+    TODO(mmd): Leverage the metadata file to get this.
+    """
+
+    max_measurements = 0
+
+    for row in tqdm(ds, desc="Computing the max # of measurements", total=len(ds)):
+        max_measurements = max(max_measurements, len(row["static_measurements"]))
+        for e in row["events"]:
+            max_measurements = max(max_measurements, len(e["measurements"]))
+    return max_measurements
+
+
 
 def main():
     parser = ArgumentParser("Train a model over a binary classification task on an ESDS dataset.")
@@ -83,6 +98,7 @@ def main():
     # Training params
     parser.add_argument("--n_epochs", type=int, default=10)
     parser.add_argument("--batch_size", type=int, default=32)
+    parser.add_argument("--lr", type=float, default=5e-3)
     args = parser.parse_args()
 
     logger.info("Loading the core dataset...")
@@ -104,6 +120,9 @@ def main():
     logger.info("Getting normalization params...")
     norm_params = get_norm_params(ds["train"])
 
+    logger.info("Getting the max # of measurements...")
+    max_measurements = get_max_measurements(ds["train"])
+
     logger.info("Applying transformations...")
     transforms = [
         JoinCohortFntr(task_df),
@@ -112,16 +131,17 @@ def main():
         ),
         TokenizeFntr(vocab),
         NormalizeFntr(norm_params),
-        TensorizeFntr(idxmap, pad_sequences_to=args.max_seq_len),
     ]
 
     for transform_fn in transforms:
-        ds = ds.map(
-            transform_fn,
-            batch_size=256,
-            batched=True,
-            remove_columns=["patient_id", "static_measurements", "events"],
-        )
+        ds = ds.map(transform_fn, batch_size=256, batched=True)
+
+    ds = ds.map(
+        TensorizeFntr(idxmap, pad_sequences_to=args.max_seq_len, pad_measurements_to=max_measurements),
+        batch_size=256,
+        batched=True,
+        remove_columns=["patient_id", "static_measurements", "events"]
+    )
 
     train_dataloader = DataLoader(ds["train"], batch_size=args.batch_size, shuffle=True)
     tuning_dataloader = DataLoader(ds["tuning"], batch_size=args.batch_size, shuffle=False)
@@ -132,6 +152,7 @@ def main():
         vocab_size=vocab_size,
         hidden_size=args.hidden_size,
         n_layers=args.n_layers,
+        lr=args.lr,
     )
 
     logger.info("Building the optimizer...")
