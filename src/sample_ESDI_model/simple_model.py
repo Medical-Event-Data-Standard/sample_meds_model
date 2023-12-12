@@ -19,7 +19,9 @@ class InputLayer(torch.nn.Module):
         )
 
     def _embed(self, ids, values, values_mask, event_mask=None):
-        per_sample_weights = torch.where(values_mask, values, torch.ones_like(values))
+        per_sample_weights = torch.where(
+            values_mask, torch.nan_to_num(values, nan=0), torch.ones_like(values)
+        )
         embedded = self.embedder(ids, per_sample_weights=per_sample_weights)
         if event_mask is not None:
             embedded = torch.where(
@@ -80,7 +82,7 @@ class Model(torch.nn.Module):
         dynamic_values,
         dynamic_values_mask,
         event_mask,
-        in_hosp_mortality,
+        **labels,
     ):
         static_embedding, dynamic_embedding = self.input_layer(
             static_ids,
@@ -92,9 +94,13 @@ class Model(torch.nn.Module):
             event_mask,
         )
 
+        assert len(labels) == 1
+        label_name, label = next(iter(labels.items()))
+
+
         seq_embed = dynamic_embedding.sum(1) + static_embedding
         logit = self.layers(seq_embed).squeeze(-1)
-        loss = self.criterion(logit, in_hosp_mortality.float())
+        loss = self.criterion(logit, label.float())
 
         return (loss, logit, seq_embed)
 
