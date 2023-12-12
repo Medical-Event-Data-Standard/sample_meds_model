@@ -11,6 +11,7 @@ import datasets
 import lightning as L
 import numpy as np
 import polars as pl
+import torch
 from ESDS_transformations import (
     JoinCohortFntr,
     NormalizeFntr,
@@ -112,16 +113,41 @@ def main():
     logger.info("Loading the task dataframe...")
     task_df = pl.read_parquet(args.task_df_path)
 
-    logger.info("Getting vocab...")
-    vocab = get_vocab(ds["train"])
+    vocab_file = Path(args.output_path) / "vocab.json"
+    if vocab_file.exists():
+        logger.info("Loading vocab from disk...")
+        with open(vocab_file, "r") as f:
+            vocab = json.load(f)
+    else:
+        logger.info("Getting vocab...")
+        vocab = get_vocab(ds["train"])
+        with open(vocab_file, "w") as f:
+            json.dump(vocab, f)
+
     idxmap = {code: i for i, code in enumerate(vocab)}
     vocab_size = len(vocab)
 
-    logger.info("Getting normalization params...")
-    norm_params = get_norm_params(ds["train"])
+    norm_file = Path(args.output_path) / "norm_params.json"
+    if norm_file.exists():
+        logger.info("Loading normalization params from disk...")
+        with open(norm_file, "r") as f:
+            norm_params = json.load(f)
+    else:
+        logger.info("Getting normalization params...")
+        norm_params = get_norm_params(ds["train"])
+        with open(norm_file, mode="w") as f:
+            json.dump(norm_params, f)
 
-    logger.info("Getting the max # of measurements...")
-    max_measurements = get_max_measurements(ds["train"])
+    max_measurements_file = Path(args.output_path) / "max_measurements.json"
+    if max_measurements_file.exists():
+        logger.info("Loading max # of measurements from disk...")
+        with open(max_measurements_file, "r") as f:
+            max_measurements = json.load(f)["max_measurements"]
+    else:
+        logger.info("Getting the max # of measurements...")
+        max_measurements = get_max_measurements(ds["train"])
+        with open(max_measurements_file, "w") as f:
+            json.dump({"max_measurements": max_measurements}, f)
 
     logger.info("Applying transformations...")
     transforms = [
@@ -142,6 +168,21 @@ def main():
         batched=True,
         remove_columns=["patient_id", "static_measurements", "events"]
     )
+
+    def print_summ(v):
+        if type(v) is torch.Tensor:
+            print(f"Tensor ({v.dtype}): {v.shape}")
+        elif type(v) is list:
+            print(f"List[{print_summ(v[0])}]: {len(v)}")
+        else:
+            print(f"{type(v)}")
+
+
+    for i in range(5):
+        x = ds['train'][i]
+        print(f"For sample {i}, we have:")
+        for k, v in x.items():
+            print(f"  {k}: {print_summ(v)}")
 
     train_dataloader = DataLoader(ds["train"], batch_size=args.batch_size, shuffle=True)
     tuning_dataloader = DataLoader(ds["tuning"], batch_size=args.batch_size, shuffle=False)
