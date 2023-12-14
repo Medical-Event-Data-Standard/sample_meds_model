@@ -78,11 +78,12 @@ class Model(torch.nn.Module):
         static_ids,
         static_values,
         static_values_mask,
+        time_delta,
         dynamic_ids,
         dynamic_values,
         dynamic_values_mask,
         event_mask,
-        **labels,
+        label,
     ):
         static_embedding, dynamic_embedding = self.input_layer(
             static_ids,
@@ -93,9 +94,6 @@ class Model(torch.nn.Module):
             dynamic_values_mask,
             event_mask,
         )
-
-        assert len(labels) == 1
-        label_name, label = next(iter(labels.items()))
 
 
         seq_embed = dynamic_embedding.sum(1) + static_embedding
