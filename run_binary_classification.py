@@ -12,7 +12,7 @@ import lightning as L
 import numpy as np
 import polars as pl
 import torch
-from ESDI_transformations import (
+from MEDS_transformations import (
     JoinCohortFntr,
     NormalizeFntr,
     SampleSubsequencesFntr,
@@ -168,21 +168,6 @@ def main():
         batched=True,
         remove_columns=["patient_id", "static_measurements", "events"]
     )
-
-    def print_summ(v):
-        if type(v) is torch.Tensor:
-            print(f"Tensor ({v.dtype}): {v.shape}")
-        elif type(v) is list:
-            print(f"List[{print_summ(v[0])}]: {len(v)}")
-        else:
-            print(f"{type(v)}")
-
-
-    for i in range(5):
-        x = ds['train'][i]
-        print(f"For sample {i}, we have:")
-        for k, v in x.items():
-            print(f"  {k}: {print_summ(v)}")
 
     train_dataloader = DataLoader(ds["train"], batch_size=args.batch_size, shuffle=True)
     tuning_dataloader = DataLoader(ds["tuning"], batch_size=args.batch_size, shuffle=False)
